@@ -13,5 +13,17 @@ If we want to see who was active over a longer period, we can merge the sets of 
 * We can generate aggregates over any period required by unpivot, aggregate, re-pivot from Postgres.
 * We can also combine multiple cells the same way (eg adjacent cells)
 
+## SQLstream schema
+
+* created by cellcare.sql
+
+
+## Postgres schema
+
+* created by cellcare.psql
+* tested by pgtests.psql
+
+Includes a function "get_subscribers" which returns a list of subscribers for a given cell, over a range of minutes
+
 
 

@@ -1,0 +1,60 @@
+-- script to create Postgres tables for cellcare
+
+-- tables are created in the demo database (user demo, password demodemo)
+
+drop schema if exists cellcare cascade;
+
+create schema cellcare;
+
+set schema 'cellcare';
+
+-- one row per cell per period
+
+create table "period_cell_subscribers_packed"
+( "lkey" varchar(16) not null
+, "period" timestamp not null
+, "occurrences" int
+, "subscribers" text
+);
+
+-- one row per cell per subscriber per period
+
+create or replace view "period_cell_subscribers_normalised"
+as select "lkey"
+, "period"
+, unnest(string_to_array("subscribers",',')) as "subscriber"
+from "period_cell_subscribers_packed";
+
+-- normalised 15 minute summary
+
+create or replace view "quarter_cell_subscribers_normalised" 
+as select to_timestamp(floor((extract('epoch' from "period") / 900 )) * 900) as "period_15"
+, "lkey"
+, "subscriber"
+, count(*) as "active_minutes"
+from "period_cell_subscribers_normalised"
+group by "period_15", "lkey", "subscriber"
+;
+
+create or replace view "quarter_cell_subscribers_packed"
+as select "period_15"
+, "lkey"
+, count(*) as "occurrences"
+, string_agg("subscriber",',') as "subscribers"
+from "quarter_cell_subscribers_normalised"
+group by "period_15", "lkey";
+
+-- return subscribers who have been in the given cell in the last "p_mins" minutes
+
+create or replace function get_subscribers("p_period" timestamp, "p_lkey" text, "p_mins" int)
+returns text
+as $$
+select string_agg("subscriber",',')
+from (
+     select distinct "subscriber"
+     from "period_cell_subscribers_normalised"
+     where "lkey" = "p_lkey"
+     and   "period" between "p_period" - (("p_mins"-1) * interval '1' minute) and "p_period"
+     ) sub
+$$
+language sql;
