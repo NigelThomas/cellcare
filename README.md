@@ -45,6 +45,21 @@ If we want to see who was active over a longer period, we can merge the sets of 
   * and we report the active subscribers
 * We can centre the grid on a given city location with given size grid and then show cycles on a dashboard
 
+By default `datagen.py` generates 30 1 minute files, with a 5x5 grid and 250 subscribers
+
+```
+usage: datagen.py [-h] [-c SUBSCRIBER_COUNT] [-m OUTPUT_MINUTES] [-s SIZE] [-a ACTIVE_PROB] [-w WALK_PROB] [-k] [-n] [-f MME_FILE_PREFIX]
+
+optional arguments:
+  -h, --help            					show this help message and exit
+  -c SUBSCRIBER_COUNT, --subscriber_count SUBSCRIBER_COUNT	number of subscribers to be created (defualt 250)
+  -m OUTPUT_MINUTES, --output_minutes OUTPUT_MINUTES		minutes of data (default 30)
+  -s SIZE, --size SIZE  					size of grid (default 5 square)
+  -a ACTIVE_PROB, --active_prob ACTIVE_PROB 			integer pct probability of activity (default 10%)
+  -w WALK_PROB, --walk_prob WALK_PROB 				integer pct probability of movement (default 20%)
+  -f MME_FILE_PREFIX, --mme_file_prefix MME_FILE_PREFIX         prefix for filename (default MME_gen_) - suffix always .csv
+```
+
 ### Visualization
 
 * Show the input data on a map dashboard
