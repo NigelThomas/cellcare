@@ -65,6 +65,29 @@ optional arguments:
 * Show the input data on a map dashboard
 * If we make the color map to each minute, and retain all icons, we can distinguish new and old pins (each minute we see a new colour)
 
+#### Locating the subscribers
+
+For London West End we can use a rectangle starting at the Grosvenor Hotel (W -0.156, N 51.510), Each grid rectangle is (W 0.00, N 0.005)
+
+We want to place subscribers in a grid square so they don't overlap. 
+
+We divide the grid into z * z = Z squares (where z = ceil(sqrt(N))
+Then place each subscriber into the square (p, q) where p = N mod Z and q = n % Z
+
+For for 5 subscribers, z = 3; for 10 z = 4; for 20 z = 5; etc; for 100 subscribers, z =  10, Z=100; for 250 survivors z = 16
+
+So the final location is:
+
+(X,Y) = (cellx + dx/z * (S# mod Z), celly + dy * (S# % y))
+
+#### Colours
+
+Let's assume we have a short inactive cycle (like 10 minutes); we can use 10 "colours" 0-9
+
+c = epochmillis % 600000 = MOD(UNIX_TIMESTAMP(s.ROWTIME),600000)
+
+Then map c to a colour in s-Dashboard / StreamLab
+
 ### Stepping through a demo
 
 * Create a data file for each minute sing the data generator
