@@ -2,6 +2,7 @@
 
 * [Introduction](#introduction)
 * [Demo description](#demo-description)
+* [Running the demo](#running-the-demo)
 * [SQLstream schema](#sqlstream-schema)
 * [Postgres schema](#postgres-schema)
 
@@ -25,18 +26,19 @@ If we want to see who was active over a longer period, we can merge the sets of 
 
 * [Streaming LISTAGG in SQLstream](#streaming-listagg-in-SQLstream)
 * [Test Data Generation](#test-data-generation)
-* [Visualization](#visualization)
-* [Stepping through a demo](#stepping-through-a-demo)
+* [Locating the subscribers](#locating-the-subscribers)
 
 ### Streaming LISTAGG in SQLstream
 
+This is implemented in the StreamLab pipeline
+
 * Read from MME input file(s)
-* Generate subscriber list per cell, per minute (done)
-* write to Postgres (TO DO)
+* Generate subscriber list per cell, per minute
+* write to Postgres table
 
 ### Test data generation
 
-* add location to each cell/subscriber record, so we can watch then
+* add location (lat,lon,color) to each cell/subscriber record, so we can watch them,
 * generate relatively small amount of data for an X by Y grid with N subscribers
   * each subscriber moves randomly (fly walk, wraparound) or remains in place
   * each subscriber may be active or inactive in each cycle
@@ -62,43 +64,138 @@ optional arguments:
  -f MME_FILE_PREFIX, --mme_file_prefix MME_FILE_PREFIX      prefix for filename (default MME_gen_) - suffix always .csv
 ```
 
-### Visualization
-
-* Show the input data on a map dashboard
-* If we make the color map to each minute, and retain all icons, we can distinguish new and old pins (each minute we see a new colour)
-
 #### Locating the subscribers
 
-For London West End we can use a rectangle starting at the Grosvenor Hotel (W -0.156, N 51.510), Each grid rectangle is (W 0.00, N 0.005)
+For London West End we can use a rectangle starting at the Grosvenor Hotel (W -0.156, N 51.510), Each grid rectangle is (W 0.006, N 0.005)
 
-We want to place subscribers in a grid square so they don't overlap. 
+* We want to place subscribers in a grid square so they don't overlap. 
+* We divide the grid into z * z = Z squares (where z = ceil(sqrt(N))
+* Then place each subscriber into the square (p, q) where p = N mod Z and q = n % Z
 
-We divide the grid into z * z = Z squares (where z = ceil(sqrt(N))
-Then place each subscriber into the square (p, q) where p = N mod Z and q = n % Z
-
-For for 5 subscribers, z = 3; for 10 z = 4; for 20 z = 5; etc; for 100 subscribers, z =  10, Z=100; for 250 survivors z = 16
+* For 5 subscribers, z = 3; for 10 z = 4; for 20 z = 5; etc; for 100 subscribers, z =  10, Z=100; for 250 survivors z = 16
 
 So the final location is:
 
 (X,Y) = (cellx + dx/z * (S# mod Z), celly + dy * (S# % y))
 
-#### Colours
+All this is done in the datagen.
 
-Let's assume we have a short inactive cycle (like 10 minutes); we can use 10 "colours" 0-9
+## Running the demo
 
-c = epochmillis % 600000 = MOD(UNIX_TIMESTAMP(s.ROWTIME),600000)
+* [Get the Repository](#get-the-repository)
+* [Start the docker image](#start-the-docker-image)
+* [Generate the test data](#generate-the-test-data)
+* [Login to StreamLab](#login-to-streamlab)
+* [Open the map and table dashboard](#open-the-map-and-table-dashboard)
+* [Stepping through data](#stepping-through-data)
+* [Postgres queries](#postgres-queries)
 
-Then map c to a colour in s-Dashboard / StreamLab
+### Get the repository
 
-### Stepping through a demo
+* Pull this git repo
+* change directory into the top of the git working set
 
-* Create a data file for each minute sing the data generator
-  * Include a dummy entry for the next minute to act as a rowrime bound
-* For each minute, drop test data file into the input directory
-* You can see icons moving on the grid; you can see the new lists of subscribers in a tabular dashboard
-  * You can check that icons showing on the display are shown in the table until they age out
+### Start the docker image
+```
+./dockerrun.sh
+```
+* This will show the log of the image starting up, ending with something like:
+```
+ Request parallel scheduler with 2 threads, pid = 389                                               INFO [1 2020-12-08 16:07:41.222]: com.sqlstream.aspen.native.sched.internal <native>
+ Scheduler starting with 2 execution threads                                                        INFO [1 2020-12-08 16:07:41.223]: com.sqlstream.aspen.native.sched.internal <native>
+ Pump SYS_BOOT.MGMT.GLOBAL_TRACE_PUMP is running.                                                   INFO [1 2020-12-08 16:07:42.236]: com.sqlstream.aspen.pump.PumpManager start
+ OCCT is turned off                                                                                 INFO [1 2020-12-08 16:07:42.317]: de.simplicit.vjdbc.server.command.CommandProcessor <init>
+ Udx FarragoJavaUdxRel.#47:506(recordTraces) runnable 8% waiting for output 0%                      INFO [20 2020-12-08 16:10:00.012]: net.sf.farrago.runtime.FarragoTransformUdx$UdxMonitor logProbeStatisistics
+```
+* Now Ctrl-C out of the log and connect to the docker container
+```
+docker exec -it blaze bash
+```
+* Set up SQLstream environment
+```
+. /etc/sqlstream/environment
+export PATH=$PATH:$SQLSTREAM_HOME/bin
+```
+### Generate the test data
+```
+cd /home/sqlstream/app
+python3 datagen.py
+```
+* Note: you could also run datagen from outside the docker container; and you could customize the options used. The /home/sqlstream/app directory is mounted from your git working copy.
+
+### Login to StreamLab
+* Start StreamLab by going to http://localhost:5590
+* Click on Projects, then click the upload icon next to "Create New Project"
+* Drag and drop the `cellcare.slab` file from the got working copy on your host to the landing area
+* Accept
+* Now you can open the `cellcare` project and navigate to the pipeline
+* No data will flow yet; the data in in `/home/sqlstream/app` but the StreamLab project is monitoring `/home/sqlstream/input`
+
+### Open the map and table dashboard
+* Open the dashboard by clicking the red eye icon at step 5.
+* Click on the URL at the top left of the dashboard
+  * this opens a new browser tab with the dashboard only - this can run independently
+* Go back to the StreamLab tab and close the dashboard
+  * Now the dashboard should show you the end of the pipeline
+
+### Stepping through data
+
+* For each minute, copy a test data file into the `/home/sqlstream/input` directory
+```
+cp MME_gen0001.csv ../input
+```
+  * In StreamLab, you should see a set of cells ("lkey") each with a list of subscribers
+  * On the dashboard you can see icons for each subscriber showing his location
+  * Icons showing on the display are shown in the table until the subscriber moves location
+
+### Postgres queries
 * Demonstrate queries from Postgres for historical data
-  * Use get_subscribers(period, cell, intervalmins)
+```
+psql -d demo -U demo
+set schema 'cellcare';
+```
+* `period_cell_subscribers_packed` shows the pipeline is storing a list of sunscribers for each cell
+```
+select * from select * from  period_cell_subscribers_packed;
+
+   lkey   |       period        | occurrences |          subscribers           
+----------+---------------------+-------------+--------------------------------
+ cell-4-3 | 2020-12-01 00:02:00 |           2 | sub-0,sub-157
+ cell-3-2 | 2020-12-01 00:02:00 |           1 | sub-5
+ cell-1-1 | 2020-12-01 00:02:00 |           1 | sub-25
+ cell-2-0 | 2020-12-01 00:02:00 |           1 | sub-41
+ cell-0-3 | 2020-12-01 00:02:00 |           3 | sub-50,sub-68,sub-162
+ cell-1-0 | 2020-12-01 00:02:00 |           3 | sub-53,sub-75,sub-113
+ cell-3-0 | 2020-12-01 00:02:00 |           2 | sub-69,sub-93
+etc
+```
+* Using PostgreSQL this data can easily be normalised:
+```
+select * from select * from  period_cell_subscribers_packed;
+   lkey   |       period        | subscriber 
+----------+---------------------+------------
+ cell-4-3 | 2020-12-01 00:02:00 | sub-0
+ cell-4-3 | 2020-12-01 00:02:00 | sub-157
+ cell-3-2 | 2020-12-01 00:02:00 | sub-5
+ cell-1-1 | 2020-12-01 00:02:00 | sub-25
+ cell-2-0 | 2020-12-01 00:02:00 | sub-41
+ cell-0-3 | 2020-12-01 00:02:00 | sub-50
+ cell-0-3 | 2020-12-01 00:02:00 | sub-68
+ cell-0-3 | 2020-12-01 00:02:00 | sub-162
+ cell-1-0 | 2020-12-01 00:02:00 | sub-53
+ cell-1-0 | 2020-12-01 00:02:00 | sub-75
+ cell-1-0 | 2020-12-01 00:02:00 | sub-113
+```
+* Use the function `get_subscribers(period, cell, intervalmins)` to combine data from multiple time periods in a minute
+  * This combines two one-minute periods ending at 00:06 (so 00:05 to 00:06)
+```
+select get_subscribers(timestamp '2020-12-01 00:06','cell-4-0',2) as subs;
+                      subs                      
+------------------------------------------------
+ sub-197,sub-183,sub-64,sub-195,sub-247,sub-111
+(1 row)
+```
+* Similar functions could deal with combining data from neighbouring cells
 
 
 ## SQLstream schema
