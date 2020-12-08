@@ -2,11 +2,18 @@
 
 -- tables are created in the demo database (user demo, password demodemo)
 
+
+CREATE DATABASE demo;
+CREATE USER demo password 'demodemo';
+
+\c demo
+
 drop schema if exists cellcare cascade;
 
 create schema cellcare;
 
 set schema 'cellcare';
+
 
 -- one row per cell per period
 
@@ -15,7 +22,9 @@ create table "period_cell_subscribers_packed"
 , "period" timestamp not null
 , "occurrences" int
 , "subscribers" text
+, primary key ("lkey","period")
 );
+GRANT ALL ON "period_cell_subscribers_packed" TO demo;
 
 -- one row per cell per subscriber per period
 
@@ -24,6 +33,8 @@ as select "lkey"
 , "period"
 , unnest(string_to_array("subscribers",',')) as "subscriber"
 from "period_cell_subscribers_packed";
+
+GRANT ALL ON "period_cell_subscribers_normalised" TO demo;
 
 -- normalised 15 minute summary
 
@@ -36,6 +47,8 @@ from "period_cell_subscribers_normalised"
 group by "period_15", "lkey", "subscriber"
 ;
 
+GRANT ALL ON "quarter_cell_subscribers_normalised" TO demo;
+
 create or replace view "quarter_cell_subscribers_packed"
 as select "period_15"
 , "lkey"
@@ -44,9 +57,11 @@ as select "period_15"
 from "quarter_cell_subscribers_normalised"
 group by "period_15", "lkey";
 
+GRANT ALL ON "quarter_cell_subscribers_packed" TO demo;
+
 -- return subscribers who have been in the given cell in the last "p_mins" minutes
 
-create or replace function get_subscribers("p_period" timestamp, "p_lkey" text, "p_mins" int)
+create or replace function "get_subscribers"("p_period" timestamp, "p_lkey" text, "p_mins" int)
 returns text
 as $$
 select string_agg("subscriber",',')
@@ -58,3 +73,7 @@ from (
      ) sub
 $$
 language sql;
+
+
+GRANT ALL ON SCHEMA cellcare TO demo;
+

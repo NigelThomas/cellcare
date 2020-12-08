@@ -22,7 +22,7 @@ args = parser.parse_args()
 # MME format - we are only interested in datetime,insi, lkey
 # seq,datetime,imsi,lkey,mme_1.deactivation_trigger,mme_1.deconnect_pdn_type,mme_1.event_id,mme_1.event_result,mme_1.l_cause_prot_type,mme_1.mmei,mme_1.originating_cause_code,mme_1.originating_cause_prot_type,mme_1.pdn_connect_request_type,mme_1.rat,mme_1.sgw,mme_1.ue_requested_apn,postcode
 
-# we will also add lat-lon coordinates at the end
+# we will also add lat-lon coordinates and color at the end for demo purposes
 
 trailing_fields = 'hlr_or_hss,mme_initiated,deactivate,ignore,nas,65532-80,undefined,undefined,handover,wcdma,172.26.52.177,mobile.o2.co.uk,HA9 0WS'
 
@@ -32,8 +32,8 @@ recno = 0
 # number of subdivisions x,y in each grid square to display subscribers
 subsize = math.ceil(math.sqrt(args.subscriber_count))
 # bottom left of display (London West End)
-baseLon = args.base_latitude
-baseLat = args.base_longitude
+baseLat = args.base_latitude
+baseLon = args.base_longitude
 # size of grid squares
 gridDeltaLon = 0.006
 gridDeltaLat = 0.004
@@ -55,6 +55,7 @@ for s in range(0,args.subscriber_count):
 # set starting time
 current_ts = datetime(year=2020, month=12, day=1, hour=0, minute=0, second=0)  
 ts_format = '%d/%m/%Y %H:%M'
+color = 0
 
 for m in range(0,args.output_minutes):
     # start a new file for each minute
@@ -62,10 +63,13 @@ for m in range(0,args.output_minutes):
     fname = args.mme_file_prefix + '{0:0>4}'.format(m) + '.csv'
     
     mf = open(fname, "w")
-    mf.write("seq,datetime,imsi,lkey,lat,lon,color,mme_1.deactivation_trigger,mme_1.deconnect_pdn_type,mme_1.event_id,mme_1.event_result,mme_1.l_cause_prot_type,mme_1.mmei,mme_1.originating_cause_code,mme_1.originating_cause_prot_type,mme_1.pdn_connect_request_type,mme_1.rat,mme_1.sgw,mme_1.ue_requested_apn,postcode\n")
+    mf.write("seq,datetime,imsi,lkey,mme_1.deactivation_trigger,mme_1.deconnect_pdn_type,mme_1.event_id,mme_1.event_result,mme_1.l_cause_prot_type,mme_1.mmei,mme_1.originating_cause_code,mme_1.originating_cause_prot_type,mme_1.pdn_connect_request_type,mme_1.rat,mme_1.sgw,mme_1.ue_requested_apn,postcode,lat,lon,color\n")
+
+    # change colour each minute in rotation
+    color = (color + 1) % 10
 
     # write a record (or not) for each subscriber and decide where they go next
-
+    
     for sub in subscribers:
 
         # is the subscriber active? 
@@ -74,7 +78,7 @@ for m in range(0,args.output_minutes):
             # TODO add trailing fields
             lat = baseLat + sub['y'] * gridDeltaLat + sub['sy']
             lon = baseLon + sub['x'] * gridDeltaLon + sub['sx']
-            mf.write('%d,%s,%s,cell-%d-%d,%f,%f,%s\n' % (recno,current_ts.strftime(ts_format),sub['name'],sub['x'],sub['y'],lat,lon,trailing_fields))
+            mf.write('%d,%s,%s,cell-%d-%d,%s,%f,%f,%d\n' % (recno,current_ts.strftime(ts_format),sub['name'],sub['y'],sub['x'],trailing_fields,lat,lon,color))
             recno += 1
         # should the subscriber move?
 
@@ -88,6 +92,6 @@ for m in range(0,args.output_minutes):
     current_ts = current_ts + timedelta(minutes=1)
 
     # and write a rowtime bound record - no subscriber or cell for demo progression
-    mf.write('%d,%s,XX,XX,0.0,0.0,%s\n' % (recno,current_ts.strftime(ts_format),trailing_fields))
+    mf.write('%d,%s,XX,XX,%s,0.0,0.0,0\n' % (recno,current_ts.strftime(ts_format),trailing_fields))
 
     mf.close()
