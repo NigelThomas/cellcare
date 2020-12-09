@@ -8,7 +8,7 @@ service postgresql start
 
 echo install Postgres schema
 
-sudo -u postgres psql -d demo -f /home/sqlstream/app/cellcare.psql
+sudo -u postgres psql -d demo -f /home/sqlstream/cellcare/cellcare.psql
 
 
 

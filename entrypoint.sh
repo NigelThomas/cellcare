@@ -51,11 +51,11 @@ function trigger_script() {
 
 sed -i 's/parse.details=false/parse.details=true/g' /var/log/sqlstream/Trace.properties
 
-trigger_script /home/sqlstream/app/pre-server-startup.sh
+trigger_script /home/sqlstream/cellcare/pre-server-startup.sh
 
 startsServer
 
-trigger_script /home/sqlstream/app/pre-app-startup.sh
+trigger_script /home/sqlstream/cellcare/pre-app-startup.sh
 
 echo "... starting app"
 echo " >>>"
@@ -70,6 +70,6 @@ fi
 echo "... starting schema with $SQLSTREAM_PIPELINE_START_SQL"
 $SQLSTREAM_HOME/bin/sqllineClient --run=$SQLSTREAM_PIPELINE_START_SQL
 
-trigger_script /home/sqlstream/app/post-app-startup.sh
+trigger_script /home/sqlstream/cellcare/post-app-startup.sh
 
 tail -F /var/log/sqlstream/Trace.log.0

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+cd /home/sqlstream/cellcare
+
+for f in MME_gen0*.csv
+do
+  if [ ! -r /home/sqlstream/input/$f ]
+  then
+    # this is the first file that hasn't been copied
+    echo "Dropping $f into input directory"
+    cp $f ../input/
+    break
+  fi
+done
+

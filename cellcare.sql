@@ -1,5 +1,10 @@
+!set force on
+ALTER PUMP "StreamLab_Output_cellcare".* STOP;
+ALTER STREAM "StreamLab_Output_cellcare".* RESET;
+DROP SCHEMA "StreamLab_Output_cellcare" CASCADE;
+!set force off
+
 CREATE OR REPLACE SCHEMA "StreamLab_Output_cellcare";
-DROP PUMP "StreamLab_Output_cellcare"."pipeline_1_step_9-to-period_cell_subscribers_packed-Pump";
 ALTER PUMP "StreamLab_Output_cellcare".* STOP;
 ALTER STREAM "StreamLab_Output_cellcare".* RESET;
 
@@ -28,7 +33,6 @@ CREATE OR REPLACE SERVER "PostgreSQL_DB_1_cellcare"
 
 --  Throttling is disabled globally in the project settings
 
-DROP PUMP "StreamLab_Output_cellcare"."source-to-data_1-Pump";
 CREATE OR REPLACE FOREIGN STREAM "StreamLab_Output_cellcare"."data_1_fs"
 (
     "seq" INTEGER,
@@ -70,7 +74,6 @@ SELECT STREAM * FROM "StreamLab_Output_cellcare"."data_1_fs";
 
 --  External table
 
-CREATE OR REPLACE SCHEMA "StreamLab_Output_cellcare";
 CREATE OR REPLACE FOREIGN TABLE "StreamLab_Output_cellcare"."period_cell_subscribers_packed" ("lkey" VARCHAR(16),
     "period" TIMESTAMP,
     "occurrences" INTEGER,
@@ -131,9 +134,15 @@ CREATE OR REPLACE VIEW "StreamLab_Output_cellcare"."pipeline_1_step_7" AS
            "input"."ROWTIME" AS "period", *
     FROM "StreamLab_Output_cellcare"."pipeline_1_step_6" AS "input";
 
+CREATE OR REPLACE STREAM "StreamLab_Output_cellcare"."dashboard_pipeline_1_step_8"(
+"period" TIMESTAMP NOT NULL, "lkey" VARCHAR(8), "occurrences" BIGINT NOT NULL, "subscribers" VARCHAR(4096) NOT NULL);
+
+CREATE OR REPLACE PUMP "StreamLab_Output_cellcare"."dashboard_pipeline_1_step_8-Pump" STOPPED AS
+INSERT INTO "StreamLab_Output_cellcare"."dashboard_pipeline_1_step_8" 
+SELECT STREAM * FROM "StreamLab_Output_cellcare"."pipeline_1_step_7" AS "input";
+
 --  External table
 
-CREATE OR REPLACE SCHEMA "StreamLab_Output_cellcare";
 CREATE OR REPLACE FOREIGN TABLE "StreamLab_Output_cellcare"."period_cell_subscribers_packed" ("lkey" VARCHAR(16),
     "period" TIMESTAMP,
     "occurrences" INTEGER,
@@ -149,16 +158,19 @@ OPTIONS (
 
 --  Define the pump
 
-CREATE OR REPLACE PUMP "StreamLab_Output_cellcare"."pipeline_1_step_8-to-period_cell_subscribers_packed-Pump" STOPPED AS
+CREATE OR REPLACE PUMP "StreamLab_Output_cellcare"."pipeline_1_step_9-to-period_cell_subscribers_packed-Pump" STOPPED AS
 MERGE INTO "StreamLab_Output_cellcare"."period_cell_subscribers_packed"  AS "sink"
-    USING (SELECT STREAM CAST("lkey" AS VARCHAR(16)) AS "lkey", CAST("period" AS TIMESTAMP) AS "period", CAST("occurrences" AS INTEGER) AS "occurrences", CAST("subscribers" AS VARCHAR(1024)) AS "subscribers" FROM "StreamLab_Output_cellcare"."pipeline_1_step_7") AS "input"
+    USING (SELECT STREAM CAST("lkey" AS VARCHAR(16)) AS "lkey", CAST("period" AS TIMESTAMP) AS "period", CAST("occurrences" AS INTEGER) AS "occurrences", CAST("subscribers" AS VARCHAR(1024)) AS "subscribers" FROM "StreamLab_Output_cellcare"."dashboard_pipeline_1_step_8") AS "input"
     ON ("sink"."lkey" = "input"."lkey") AND ("sink"."period" = "input"."period")
 WHEN MATCHED THEN
     UPDATE SET "occurrences" = "input"."occurrences", "subscribers" = "input"."subscribers"
 WHEN NOT MATCHED THEN
     INSERT ("lkey", "period", "occurrences", "subscribers")
     VALUES ("lkey", "period", "occurrences", "subscribers");
-CREATE OR REPLACE VIEW "StreamLab_Output_cellcare"."pipeline_1_out" AS SELECT STREAM * FROM "StreamLab_Output_cellcare"."pipeline_1_step_7";
+CREATE OR REPLACE VIEW "StreamLab_Output_cellcare"."pipeline_1_out" AS 
+SELECT STREAM * FROM "StreamLab_Output_cellcare"."dashboard_pipeline_1_step_8";
 
 --  StreamApp end
+
+ALTER PUMP "StreamLab_Output_cellcare".* START;
 

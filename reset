@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Reset the test
+
+. /etc/sqlstream/environment
+
+echo "Resetting the demo"
+
+rm /home/sqlstream/input/MME_gen*.csv
+
+# break any open sessions
+
+echo "Restarting s-server..."
+sudo service s-serverd restart
+
+echo "Stopping other services..."
+
+sudo service webagentd stop
+sudo service s-dashboardd stop
+sudo service streamlabd stop
+
+cd /home/sqlstream/cellcare
+
+echo "Re-installing the application..."
+
+./pre-server-startup.sh
+./pre-app-startup.sh
+
+

@@ -1,0 +1,6 @@
+paddedmin=$(printf "%02d" $2)
+
+psql -U demo -d demo <<!END
+set schema 'cellcare';
+select get_subscribers(timestamp '2020-12-01 00:00:00' + interval '$2' minute, '$1', $3) as "subs for $1 for $3 mins up to 00:$paddedmin inclusive";
+!END
