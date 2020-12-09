@@ -1,0 +1,29 @@
+# set -x 
+paddedmin=$(printf "%02d" $2)
+
+rOW=`echo "$1" | cut -f2 -d"-"`
+cOL=`echo "$1" | cut -f3 -d"-"`
+# echo rOW:$rOW cOL:$cOL
+
+let q=$rOW-1%5?$rOW-1%5:5
+let s=$rOW%5+1
+let b=$cOL-1%5?$cOL-1%5:5
+let d=$cOL%5+1
+# echo q:$q s:$s b:$b d:$d
+
+echo
+echo "subs for $3 mins up to 00:$paddedmin inclusive for $1 and its neighbors"
+
+psql -U demo -d demo <<!END
+set schema 'cellcare';
+select '$1' as "cell",get_subscribers(timestamp '2020-12-01 00:00:00' + interval '$2' minute, '$1', $3) as "subs for $3 mins up to 00:$paddedmin inclusive"
+UNION 
+select 'cell-$q-$b' as "cell",get_subscribers(timestamp '2020-12-01 00:00:00' + interval '$2' minute, 'cell-$q-$b', $3) as "subs"
+UNION
+select 'cell-$s-$b' as "cell",get_subscribers(timestamp '2020-12-01 00:00:00' + interval '$2' minute, 'cell-$s-$b', $3) as "subs"
+UNION
+select 'cell-$q-$d' as "cell",get_subscribers(timestamp '2020-12-01 00:00:00' + interval '$2' minute, 'cell-$q-$d', $3) as "subs "
+UNION
+select 'cell-$s-$d' as "cell",get_subscribers(timestamp '2020-12-01 00:00:00' + interval '$2' minute, 'cell-$s-$d', $3) as "subs"
+;
+!END

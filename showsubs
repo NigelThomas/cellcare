@@ -1,4 +1,4 @@
-psql -U demo -d demo <<!END
+sudo -u postgres psql -U demo -d demo <<!END
 
 select * from cellcare."period_cell_subscribers_packed"
 order by "period", "lkey"
