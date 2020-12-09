@@ -55,6 +55,8 @@ trigger_script /home/sqlstream/cellcare/pre-server-startup.sh
 
 startsServer
 
+service start postgresql
+
 trigger_script /home/sqlstream/cellcare/pre-app-startup.sh
 
 echo "... starting app"
