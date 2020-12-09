@@ -10,9 +10,9 @@ $SQLSTREAM_HOME/bin/sqllineClient --run=/home/sqlstream/cellcare/cellcare.sql
 # s-Dashboard to use this directory
 sudo sed -i '/SDASHBOARD_DIR/ s:/opt.*:/home/sqlstream/cellcare/dashboards:' /etc/default/s-dashboardd
 
-service webagentd start
-service streamlabd start
-service s-dashboardd start
+sudo service webagentd start
+sudo service streamlabd start
+sudo service s-dashboardd start
 
 
 
