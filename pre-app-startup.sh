@@ -12,7 +12,13 @@ sudo sed -i '/SDASHBOARD_DIR/ s:/opt.*:/home/sqlstream/cellcare/dashboards:' /et
 
 sudo service webagentd start
 sudo service streamlabd start
-sudo service s-dashboardd start
+
+# issue with service, so use daemon
+
+$SQLSTREAM_HOME/../s-Dashboard/stopDashboard.sh
+
+nohup $SQLSTREAM_HOME/../s-Dashboard/s-dashboard.sh &
+
 
 
 
