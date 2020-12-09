@@ -26,4 +26,5 @@ echo "Re-installing the application..."
 ./pre-server-startup.sh
 ./pre-app-startup.sh
 
+echo "\n **** Reset completed  ****\n"
 
