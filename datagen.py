@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 # we will also add lat-lon coordinates and color at the end for demo purposes
 
-trailing_fields = 'hlr_or_hss,mme_initiated,deactivate,ignore,nas,65532-80,undefined,undefined,handover,wcdma,172.26.52.177,mobile.o2.co.uk,HA9 0WS'
+trailing_fields = 'hlr_or_hss,mme_initiated,deactivate,ignore,nas,65532-80,undefined,undefined,handover,wcdma,172.26.52.177,example.co.uk,HA9 0WS'
 
 subscribers = []
 recno = 0
