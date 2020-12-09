@@ -118,10 +118,10 @@ export PATH=$PATH:$SQLSTREAM_HOME/bin
 ```
 ### Generate the test data
 ```
-cd /home/sqlstream/app
+cd /home/sqlstream/cellcare
 python3 datagen.py
 ```
-* Note: you could also run datagen from outside the docker container; and you could customize the options used. The /home/sqlstream/app directory is mounted from your git working copy.
+* Note: you could also run datagen from outside the docker container; and you could customize the options used. The /home/sqlstream/cellcare directory is mounted from your git working copy.
 
 ### Login to StreamLab
 * Start StreamLab by going to http://localhost:5590
@@ -129,7 +129,7 @@ python3 datagen.py
 * Drag and drop the `cellcare.slab` file from the got working copy on your host to the landing area
 * Accept
 * Now you can open the `cellcare` project and navigate to the pipeline
-* No data will flow yet; the data in in `/home/sqlstream/app` but the StreamLab project is monitoring `/home/sqlstream/input`
+* No data will flow yet; the data in in `/home/sqlstream/cellcare` but the StreamLab project is monitoring `/home/sqlstream/input`
 
 ### Open the map and table dashboard
 * Open the dashboard by clicking the red eye icon at step 5.
@@ -140,38 +140,31 @@ python3 datagen.py
 
 ### Stepping through data
 
-* For each minute, copy a test data file into the `/home/sqlstream/input` directory
+* For each minute, copy a test data file into the `/home/sqlstream/input` directory using the `next` shell script:
 ```
-cp MME_gen0001.csv ../input
+next
 ```
   * In StreamLab, you should see a set of cells ("lkey") each with a list of subscribers
   * On the dashboard you can see icons for each subscriber showing his location
   * Icons showing on the display are shown in the table until the subscriber moves location
 
 ### Postgres queries
-* Demonstrate queries from Postgres for historical data
+* Demonstrate queries from Postgres for historical data. We have a script for that; `showsubs`:
 ```
-psql -d demo -U demo
-set schema 'cellcare';
-```
-* `period_cell_subscribers_packed` shows the pipeline is storing a list of sunscribers for each cell
-```
-select * from select * from  period_cell_subscribers_packed;
-
-   lkey   |       period        | occurrences |          subscribers           
-----------+---------------------+-------------+--------------------------------
- cell-4-3 | 2020-12-01 00:02:00 |           2 | sub-0,sub-157
- cell-3-2 | 2020-12-01 00:02:00 |           1 | sub-5
- cell-1-1 | 2020-12-01 00:02:00 |           1 | sub-25
- cell-2-0 | 2020-12-01 00:02:00 |           1 | sub-41
- cell-0-3 | 2020-12-01 00:02:00 |           3 | sub-50,sub-68,sub-162
- cell-1-0 | 2020-12-01 00:02:00 |           3 | sub-53,sub-75,sub-113
- cell-3-0 | 2020-12-01 00:02:00 |           2 | sub-69,sub-93
+$ showsubs
+   lkey   |       period        | occurrences |                     subscribers                     
+----------+---------------------+-------------+-----------------------------------------------------
+ cell-0-2 | 2020-12-01 00:01:00 |           2 | sub-140,sub-237
+ cell-0-3 | 2020-12-01 00:01:00 |           2 | sub-85,sub-123
+ cell-1-0 | 2020-12-01 00:01:00 |           1 | sub-150
+ cell-1-2 | 2020-12-01 00:01:00 |           2 | sub-5,sub-169
+ cell-1-3 | 2020-12-01 00:01:00 |           3 | sub-133,sub-203,sub-214
 etc
 ```
-* Using PostgreSQL this data can easily be normalised:
+
+* Using PostgreSQL this data can easily be "normalised" using `showsubnormal` to return one row per unique lkey/subscriber:
 ```
-select * from select * from  period_cell_subscribers_packed;
+$ showsubsnormal
    lkey   |       period        | subscriber 
 ----------+---------------------+------------
  cell-4-3 | 2020-12-01 00:02:00 | sub-0
@@ -186,14 +179,16 @@ select * from select * from  period_cell_subscribers_packed;
  cell-1-0 | 2020-12-01 00:02:00 | sub-75
  cell-1-0 | 2020-12-01 00:02:00 | sub-113
 ```
-* Use the function `get_subscribers(period, cell, intervalmins)` to combine data from multiple time periods in a minute
-  * This combines two one-minute periods ending at 00:06 (so 00:05 to 00:06)
+* Combine data from multiple time periods in a minute using `showcell`
+  * This example combines 2 one-minute periods ending at 00:03 (so 00:02 to 00:03)
 ```
-select get_subscribers(timestamp '2020-12-01 00:06','cell-4-0',2) as subs;
-                      subs                      
-------------------------------------------------
- sub-197,sub-183,sub-64,sub-195,sub-247,sub-111
+showcell cell-3-1 3 2
+SET
+ subs for cell-3-1 for 2 mins up to 00:03 inclusive 
+----------------------------------------------------
+ sub-184,sub-247,sub-125
 (1 row)
+
 ```
 * Similar functions could deal with combining data from neighbouring cells
 

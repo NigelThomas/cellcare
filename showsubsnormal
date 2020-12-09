@@ -1,0 +1,8 @@
+psql -U demo -d demo <<!END
+
+select * from cellcare."period_cell_subscribers_normalised"
+order by "period", "lkey"
+;
+
+!END
+
