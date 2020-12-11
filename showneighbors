@@ -5,12 +5,16 @@ rOW=`echo "$1" | cut -f2 -d"-"`
 cOL=`echo "$1" | cut -f3 -d"-"`
 # echo rOW:$rOW cOL:$cOL
 
+# compute neighbor cells q-ROW-s , b-cOL-d
+# q is one row up
+# s is one row down
+# b is one column to the left
+# d is one row to the right
 mAXvERT=4
-if [ $rOW -eq 0 ] ; then q=${mAXvERT} ; else let q=\($rOW-1\)%${mAXvERT} ; fi
-if [ $rOW -eq $mAXvERT ] ; then s=0 ; else let s=\($rOW+1\)%${mAXvERT} ; fi
-# let s=$rOW+1%4
-let b=$cOL?$cOL-1%$mAXvERT:$mAXvERT
-let d=\($cOL+1\)%\($mAXvERT+1\)
+let q=${rOW}?${rOW}-1%${mAXvERT}:${mAXvERT}
+let s=\(${rOW}+1\)%\(${mAXvERT}+1\)
+let b=${cOL}?${cOL}-1%${mAXvERT}:${mAXvERT}
+let d=\(${cOL}+1\)%\(${mAXvERT}+1\)
 # echo q:$q s:$s b:$b d:$d
 
 psql -U demo -d demo <<!END
